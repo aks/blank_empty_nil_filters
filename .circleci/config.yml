@@ -5,7 +5,7 @@
 version: 2
 
 defaults: &DEFAULTS
-  resource_class: small
+  resource_class: medium
   docker:
     - image: circleci/ruby:latest
 
