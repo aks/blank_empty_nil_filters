@@ -103,8 +103,8 @@ jobs:
             bundle exec rake build
 
       - deploy:
-          name: Release and push
-          command: bundle exec rake push
+          name: Release
+          command: bundle exec rake release
 
 workflows:
   version: 2
