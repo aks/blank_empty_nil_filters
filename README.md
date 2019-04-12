@@ -2,6 +2,8 @@
 
 Ruby gem to extend Hash and Array with filters for blank, empty, and nil values.
 
+Build status: [![CircleCI](https://circleci.com/gh/aks/blank_empty_nil_filters/tree/master.svg?style=svg)](https://circleci.com/gh/aks/blank_empty_nil_filters/tree/master)
+
 This module creates new methods to be prepended to the Array, Hash, String,
 and Object classes to implement recursive filters for _blank_, _empty_, and
 nil values.
