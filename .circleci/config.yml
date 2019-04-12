@@ -75,45 +75,8 @@ jobs:
             - pkg/blank_empty_nil_filters*.gem
             - vendor/bundle
 
-  release:
-    <<: *DEFAULTS
-    steps:
-      - checkout
-
-      - attach_workspace:
-          at: ~/repo
-
-      - restore_cache:
-          keys:
-            - gem-cache-{{ checksum "blank_empty_nil_filters.gemspec" }}
-            - gem-cache-
-
-      - run:
-          name: Check bundle version
-          command: bundle --version
-
-      - run:
-          name: install dependencies
-          command: bundle install --jobs=4 --retry=3 --path vendor/bundle
-
-      - run:
-          name: build package
-          command: |
-            bundle exec rake clean
-            bundle exec rake build
-
-      - deploy:
-          name: Release
-          command: bundle exec rake release
-
 workflows:
   version: 2
   bundle_test_build_release:
     jobs:
       - build
-      - release:
-          requires:
-            - build
-          filters:
-            branches:
-              only: master
