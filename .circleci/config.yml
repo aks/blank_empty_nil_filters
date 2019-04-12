@@ -23,9 +23,6 @@ jobs:
     steps:
       - checkout
 
-      - attach_workspace:
-          at: ~/repo
-
       - restore_cache:
           keys:
             - gem-cache-{{ checksum "blank_empty_nil_filters.gemspec" }}
@@ -62,18 +59,6 @@ jobs:
       - store_artifacts:
           path: /tmp/test-results
           destination: test-results
-
-      - run:
-          name: build package
-          command: |
-            bundle exec rake clean
-            bundle exec rake build
-
-      - persist_to_workspace:
-          root: ~/repo
-          paths:
-            - pkg/blank_empty_nil_filters*.gem
-            - vendor/bundle
 
 workflows:
   version: 2
