@@ -1,0 +1,119 @@
+# Ruby CircleCI 2.0 configuration file for +blank_empty_nil_filters+
+#
+# Check https://circleci.com/docs/2.0/language-ruby/ for more details
+#
+version: 2
+
+defaults: &DEFAULTS
+  resource_class: small
+  docker:
+    - image: circleci/ruby:latest
+
+      environment:
+        BUNDLE_JOBS: 3
+        BUNDLE_RETRY: 3
+        BUNDLE_PATH: vendor/bundle
+
+  working_directory: ~/repo
+
+jobs:
+  build:
+    <<: *DEFAULTS
+
+    steps:
+      - checkout
+
+      - attach_workspace:
+          at: ~/repo
+
+      - restore_cache:
+          keys:
+            - gem-cache-{{ checksum "blank_empty_nil_filters.gemspec" }}
+            - gem-cache-
+
+      - run:
+          name: Check bundle version
+          command: bundle --version
+
+      - run:
+          name: install dependencies
+          command: bundle install --jobs=4 --retry=3 --path vendor/bundle
+
+      - save_cache:
+          paths:
+            - ./vendor/bundle
+          key: gem-cache-{{ checksum "blank_empty_nil_filters.gemspec" }}
+
+      - run:
+          name: run tests
+          command: |
+            mkdir /tmp/test-results
+            TEST_FILES="$(circleci tests glob 'spec/**/*_spec.rb' | circleci tests split --split-by=timings)"
+
+            bundle exec rspec --format progress \
+                            --format RspecJunitFormatter \
+                            --out /tmp/test-results/rspec.xml \
+                            --format progress \
+                            $TEST_FILES
+
+      - store_test_results:
+          path: /tmp/test-results
+
+      - store_artifacts:
+          path: /tmp/test-results
+          destination: test-results
+
+      - run:
+          name: build package
+          command: |
+            bundle exec rake clean
+            bundle exec rake build
+
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - pkg/blank_empty_nil_filters*.gem
+            - vendor/bundle
+
+  release:
+    <<: *DEFAULTS
+    steps:
+      - checkout
+
+      - attach_workspace:
+          at: ~/repo
+
+      - restore_cache:
+          keys:
+            - gem-cache-{{ checksum "blank_empty_nil_filters.gemspec" }}
+            - gem-cache-
+
+      - run:
+          name: Check bundle version
+          command: bundle --version
+
+      - run:
+          name: install dependencies
+          command: bundle install --jobs=4 --retry=3 --path vendor/bundle
+
+      - run:
+          name: build package
+          command: |
+            bundle exec rake clean
+            bundle exec rake build
+
+      - deploy:
+          name: Release and push
+          command: bundle exec rake push
+
+workflows:
+  version: 2
+  bundle_test_build_release:
+    jobs:
+      - build
+      - release:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
