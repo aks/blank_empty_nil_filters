@@ -82,6 +82,18 @@ aoh.reject_values(:condition_method)  # reject items matching :condition_method
 aoh.select_values(:condition_method)  # select items matching :condition_method
 ```
 
+There are two `Object` instance methods of `no_empty_value` and `no_blank_value` that can be used as `String` or
+other class instance filters to return the instance or a nil.  This enables the use of `||` conditions to provide 
+alternative values:
+
+```ruby
+obj.no_empty_value || 'default'
+obj.no_blank_value || 'default'
+```
+
+These two methods are like `ActiveSupport`'s `presence` method but with finer-grain control.
+
+### Condition Methods
 
 The methods below are used with the general purpose methods to form the special-case filters.
 
@@ -98,6 +110,7 @@ obj.non_nil?       # !object.nil?
 For _hash_ or _array_ objects, `is_empty?` and `is_blank?` work recursively on the object
 elements, and the result is true only if true at every level.
 
+### Hash key and value filters
 There are also convenience methods to select the keys from filtered hash items:
 
 ```ruby
@@ -190,10 +203,24 @@ To filter out _blank_ values from an array:
 [:1 " " "    " nil ['' '    '] :2].no_blank_values => [:1 :2]
 ```
 
+### String Filters
+
+The `no_empty_value` and `no_blank_value` methods on the `Object` class can be applied to any object that supports the `is_blank?` and `is_empty?` condition methods, including the `String` class.
+
+```ruby
+' no fun '.no_empty_value || 'other' ==> ' no fun '
+''.        no_empty_value || 'other' ==> 'other'
+'  '.      no_empty_value || 'other' ==> '  '
+' answer '.no_blank_value || 'no'    ==> ' answer '
+'  '.      no_blank_value || 'no'    ==> 'no'
+'\n'.      no_blank_value || 'no'    ==> 'no'
+```
+
+
+
 ## Testing
 
-There is an `rspec`-style test in the `spec` directory, the perusal of which will also provide
-some examples of usage.
+There is an `rspec`-style test in the `spec` directory, the perusal of which will also provide some examples of usage.
 
 The rspec-style tests are normally run under the `fuubar` formatter gem which shows an incremental summary on a single line.  The
 tests can be run with `rake` or with `rspec`:

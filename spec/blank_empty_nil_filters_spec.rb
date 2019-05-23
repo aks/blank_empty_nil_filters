@@ -227,18 +227,18 @@ RSpec.describe BlankEmptyNilFilters do
   describe "StringFilters" do
     test_string_data =
       [
-        # test data     is_empty      is_blank       description
-        ['',            true,         true,          'empty'],
-        [' ',           false,        true,          'blank'],
-        ['         ',   false,        true,          'all blanks'],
-        ["\t",          false,        true,          'tab-only'],
-        ["heh",         false,        false,         'non-blank, non-empty'],
-        ["\n\n",        false,        true,          'new-lines only'],
-        ["heh\n",       false,        false,         'non-empty, non-blank with newline']
+        # test data     is_empty      is_blank       no_empty_value  no_blank_value  description
+        ['',            true,         true,          nil,            nil,            'empty'],
+        [' ',           false,        true,          ' ',            nil,            'blank'],
+        ['         ',   false,        true,          '         ',    nil,            'all blanks'],
+        ["\t",          false,        true,          "\t",           nil,            'tab-only'],
+        ["heh",         false,        false,         'heh',          'heh',          'non-blank, non-empty'],
+        ["\n\n",        false,        true,          "\n\n",         nil,            'new-lines only'],
+        ["heh\n",       false,        false,         "heh\n",        "heh\n",        'non-empty, non-blank with newline']
       ]
 
     describe "#is_empty?" do
-      test_string_data.each do |test_data, is_empty_result, _is_blank_result, desc|
+      test_string_data.each do |test_data, is_empty_result, _is_blank_result, _no_empty_value_result, _no_blank_value_result, desc|
         it "returns #{is_empty_result} on #{desc} strings" do
           expect(test_data.is_empty?).to eq is_empty_result
         end
@@ -246,9 +246,25 @@ RSpec.describe BlankEmptyNilFilters do
     end
 
     describe "#is_blank?" do
-      test_string_data.each do |test_data, _is_empty_result, is_blank_result, desc|
+      test_string_data.each do |test_data, _is_empty_result, is_blank_result, _no_empty_value_result, _no_blank_value_result, desc|
         it "returns #{is_blank_result} on #{desc} strings" do
           expect(test_data.is_blank?).to eq is_blank_result
+        end
+      end
+    end
+
+    describe '#no_empty_value' do
+      test_string_data.each do |test_data, _is_empty_result, _is_blank_result, no_empty_value_result, _no_blank_value_result, desc|
+        it "returns #{no_empty_value_result} on #{desc} strings" do
+          expect(test_data.no_empty_value).to eq no_empty_value_result
+        end
+      end
+    end
+
+    describe '#no_blank_value' do
+      test_string_data.each do |test_data, _is_empty_result, _is_blank_result, _no_empty_value_result, no_blank_value_result, desc|
+        it "returns #{no_blank_value_result} on #{desc} strings" do
+          expect(test_data.no_blank_value).to eq no_blank_value_result
         end
       end
     end

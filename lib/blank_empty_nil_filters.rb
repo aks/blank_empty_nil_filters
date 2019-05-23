@@ -151,6 +151,14 @@ module BlankEmptyNilFilters
   end
 
   module ObjectExtensions
+    def no_blank_value
+      is_blank? ? nil : self
+    end
+
+    def no_empty_value
+      is_empty? ? nil : self
+    end
+
     def is_empty?
       if nil?
         true
