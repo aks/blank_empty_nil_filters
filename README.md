@@ -4,18 +4,29 @@ Ruby gem to extend Hash and Array with filters for blank, empty, and nil values.
 
 Build status: [![CircleCI](https://circleci.com/gh/aks/blank_empty_nil_filters/tree/master.svg?style=svg)](https://circleci.com/gh/aks/blank_empty_nil_filters/tree/master)
 
-This module creates new methods to be prepended to the Array, Hash, String,
-and Object classes to implement recursive filters for _blank_, _empty_, and
-nil values.
+This module creates new methods to be prepended to the Array, Hash,
+String, and Object classes to implement recursive filters for _blank_,
+_empty_, and nil values.
 
-Note: `ActiveSupport` provides _some_ of these methods, but in general is a *much* larger body
-of code.  This module are only those methods related to "blank", "empty" or nil. Also,
-`ActiveSupport` uses `Regexp` `match` to determine blankness, while this code uses a
-non-destructive `strip`, which is both faster and less sensitive to non-UTF8 string error
-conditions.
+The methods can select or reject values which are blank _(whitespace)_, 
+empty _(zero length)_, or nil, and do so recursively.
 
-In general an _empty_ value has zero length, and a _blank_ value is either empty or has
-all blank values (e.g., `to_s.strip.length.zero?`)
+The default behavior is to filter recursively, without limit.
+However, optional arguments may be applied to any filter method to
+indicate the _start_ level and the _depth_ to which filtering should
+be done.  This is useful if, say, a hash needs to retain its top-level
+keys, regardless of whether or not its values are empty, but deeper
+level hashes can be completely removed if they are empty.
+
+Note: `ActiveSupport` provides _some_ of these methods, but in general
+is a *much* larger body of code.  This module are only those methods
+related to "blank", "empty" or nil. Also, `ActiveSupport` uses
+`Regexp` `match` to determine blankness, while this code uses a
+non-destructive `strip`, which is both faster and less sensitive to
+non-UTF8 string error conditions.
+
+In general an _empty_ value has zero length, and a _blank_ value is either 
+empty or has all blank values (e.g., `to_s.strip.length.zero?`)
 
 In the descriptions below, `aoh` is an `Array` or `Hash` object.
 
@@ -67,6 +78,7 @@ hash.nil_value_keys         # keys from nil values
 ```
 
 All of the `no_*` methods have aliases of `reject_*`.  For example, `reject_empty_values`.
+All of the `only_*` methods have aliases of `select_*`; eg: `select_nil_values`.
 Some folks prefer the shorter names, some prefer the longer ones.  Take your pick.
 
 ```ruby
@@ -74,6 +86,19 @@ aoh.reject_empty_values     # aoh.no_empty_values
 aoh.reject_blank_values     # aoh.no_blank_values
 aoh.reject_nil_values       # aoh.no_nil_values
 ```
+
+Any of the above methods can be provided optional arguments of _start_ and _depth_
+to indicate levels at which filter _(selecting or rejecting)_ should start and 
+stop.
+
+```ruby
+aoh.no_empty_values(1)      # no empty items at level 1 or higher; leave level 0 alone
+aoh.no_blank_values(1)      # no blank items at level 1 or higher; leave level 0 alone
+aoh.no_nil_values(1, 4)     # no nil items at level 1 until level 4; level level 0 alone
+```
+
+Note that it is important to use a `depth`  value to prevent infinite loops when there 
+are recursive data structures.
 
 All of the above methods are wrappers around two general purpose methods:
 
