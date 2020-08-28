@@ -6,7 +6,7 @@ module BlankEmptyNilFilters
   # These filter methods are used on both the Array and Hash extensions
   module FilterMethods
     def maybe_recurse(val, scanner, condition, start, depth, level)
-      if level >= start && (depth.nil? || level < depth)
+      if depth.nil? || level <= depth
         if val.respond_to?(scanner)
           val.send(scanner, condition, start, depth, level+1) # recurse
         else
@@ -17,8 +17,12 @@ module BlankEmptyNilFilters
       end
     end
 
-    def maybe_apply(val, condition, start, depth, level)
-      val.send(condition) if level >= start && (depth.nil? || level < depth)
+    def maybe_apply(val, condition, default, start, depth, level)
+      if level >= (start || 0) && (depth.nil? || level <= depth)
+        val.send(condition)
+      else
+        default
+      end
     end
   end
 
@@ -88,8 +92,9 @@ module BlankEmptyNilFilters
     include FilterMethods
 
     def filter_values(scanner, selector, condition, start, depth, level)
+      default = selector == :select
       map { |val| maybe_recurse(val, scanner, condition, start, depth, level) }
-        .send(selector) { |val| maybe_apply(val, condition, start, depth, level) }
+        .send(selector) { |val| maybe_apply(val, condition, default, start, depth, level) }
     end
   end
 
@@ -169,8 +174,9 @@ module BlankEmptyNilFilters
     include FilterMethods
 
     def filter_hash_values(scanner, selector, condition, start, depth, level)
+      default = selector == :select
       dup.transform_values { |val| maybe_recurse(val, scanner, condition, start, depth, level) }
-        .send(selector) { |_key, val| maybe_apply(val, condition, start, depth, level) }
+        .send(selector) { |_key, val| maybe_apply(val, condition, default, start, depth, level) }
     end
   end
 

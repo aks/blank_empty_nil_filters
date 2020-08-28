@@ -15,45 +15,59 @@ RSpec.describe BlankEmptyNilFilters do
   ONLY_BLANK_RESULT_INDEX = 6
   ONLY_NIL_RESULT_INDEX   = 7
 
-  shared_examples_for 'reject_filters' do |test_data, method, result_index, action, test_kind|
+  shared_examples_for 'apply_filter' do |test_data, filter, method, result_index, test_kind|
     describe "##{method}" do
       test_data.each do |data|
         desc, test_datum, test_result = data.values_at(DESC_INDEX, DATA_INDEX, result_index)
-        it "#{action} #{test_kind} #{desc}" do
+        it "#{filter} #{test_kind} #{desc}" do
           expect(test_datum.send(method)).to eq test_result
         end
       end
     end
   end
 
-  shared_examples_for 'reject_values' do |test_data, filter, result_index, action, test_kind|
-    describe "#reject_values(:#{filter})" do
+  shared_examples_for 'filter_values' do |test_data, filter, condition, result_index, test_kind|
+    filter_method = filter.to_s.sub(/s$/, '_values')
+    describe "#{filter_method}(:#{condition})" do
       test_data.each do |data|
         desc, test_datum, test_result = data.values_at(DESC_INDEX, DATA_INDEX, result_index)
-        it "#{action} #{test_kind} #{desc}" do
-          expect(test_datum.reject_values(filter)).to eq test_result
+        it "#{filter} #{test_kind} #{desc}" do
+          expect(test_datum.send(filter_method, condition)).to eq test_result
         end
       end
     end
   end
 
-  shared_examples_for 'select_values' do |test_data, filter, result_index, action, test_kind|
-    describe "#select_values(:#{filter})" do
-      test_data.each do |data|
-        desc, test_datum, test_result = data.values_at(DESC_INDEX, DATA_INDEX, result_index)
-        it "#{action} #{test_kind} #{desc}" do
-          expect(test_datum.select_values(filter)).to eq test_result
-        end
-      end
-    end
-  end
-
-  shared_examples_for 'key_filters' do |test_data, method, result_index, action, test_kind|
+  shared_examples_for 'key_filters' do |test_data, filter, method, result_index, test_kind|
     describe "#{method}" do
       test_data.each do |data|
         desc, test_datum, test_result = data.values_at(DESC_INDEX, DATA_INDEX, result_index)
-        it "#{action} #{test_kind} #{desc}" do
+        it "#{filter} #{test_kind} #{desc}" do
           expect(test_datum.send(method)).to match_array(test_result.keys)
+        end
+      end
+    end
+  end
+
+  METHODS_TO_RESULT_INDEX_MAP =
+    {
+      reject_empty_values: NON_EMPTY_RESULT_INDEX,
+      reject_blank_values: NON_BLANK_RESULT_INDEX,
+      reject_nil_values:   NON_NIL_RESULT_INDEX,
+      select_empty_values: ONLY_EMPTY_RESULT_INDEX,
+      select_blank_values: ONLY_BLANK_RESULT_INDEX,
+      select_nil_values:   ONLY_NIL_RESULT_INDEX
+    }.freeze
+
+  shared_examples_for 'apply_filters_with_args' do |test_data, start, depth|
+    %w[reject select].each do |filter|
+      %w[empty blank nil].each do |kind|
+        filter_method = "#{filter}_#{kind}_values".to_sym
+        result_index = METHODS_TO_RESULT_INDEX_MAP[filter_method]
+        test_kind = "#{filter}s #{kind} values"
+        desc, test_datum, test_result = test_data.values_at(DESC_INDEX, DATA_INDEX, result_index)
+        it "#{filter_method}(#{start || 'nil'}, #{depth || 'nil'}) #{test_kind} #{desc}" do
+          expect(test_datum.send(filter_method, start, depth)).to eq test_result
         end
       end
     end
@@ -117,29 +131,104 @@ RSpec.describe BlankEmptyNilFilters do
           ]
         ].freeze
 
-      it_behaves_like 'reject_filters', test_array_data, :no_empty_values,   NON_EMPTY_RESULT_INDEX,  'rejects', 'empty or nil'
-      it_behaves_like 'reject_filters', test_array_data, :no_blank_values,   NON_BLANK_RESULT_INDEX,  'rejects', 'blank or nil'
-      it_behaves_like 'reject_filters', test_array_data, :no_nil_values,     NON_NIL_RESULT_INDEX,    'rejects', 'nil'
+      it_behaves_like 'apply_filter', test_array_data, :rejects, :no_empty_values,   NON_EMPTY_RESULT_INDEX,  'empty or nil'
+      it_behaves_like 'apply_filter', test_array_data, :rejects, :no_blank_values,   NON_BLANK_RESULT_INDEX,  'blank or nil'
+      it_behaves_like 'apply_filter', test_array_data, :rejects, :no_nil_values,     NON_NIL_RESULT_INDEX,    'nil'
 
-      it_behaves_like 'reject_filters', test_array_data, :reject_empty_values, NON_EMPTY_RESULT_INDEX, 'rejects', 'empty or nil'
-      it_behaves_like 'reject_filters', test_array_data, :reject_blank_values, NON_BLANK_RESULT_INDEX, 'rejects', 'blank or nil'
-      it_behaves_like 'reject_filters', test_array_data, :reject_nil_values,   NON_NIL_RESULT_INDEX,   'rejects', 'nil'
+      it_behaves_like 'apply_filter', test_array_data, :rejects, :reject_empty_values, NON_EMPTY_RESULT_INDEX, 'empty or nil'
+      it_behaves_like 'apply_filter', test_array_data, :rejects, :reject_blank_values, NON_BLANK_RESULT_INDEX, 'blank or nil'
+      it_behaves_like 'apply_filter', test_array_data, :rejects, :reject_nil_values,   NON_NIL_RESULT_INDEX,   'nil'
 
-      it_behaves_like 'reject_filters', test_array_data, :only_empty_values, ONLY_EMPTY_RESULT_INDEX, 'selects', 'empty or nil'
-      it_behaves_like 'reject_filters', test_array_data, :only_blank_values, ONLY_BLANK_RESULT_INDEX, 'selects', 'blank or nil'
-      it_behaves_like 'reject_filters', test_array_data, :only_nil_values,   ONLY_NIL_RESULT_INDEX,   'selects', 'nil'
+      it_behaves_like 'apply_filter', test_array_data, :selects, :only_empty_values, ONLY_EMPTY_RESULT_INDEX, 'empty or nil'
+      it_behaves_like 'apply_filter', test_array_data, :selects, :only_blank_values, ONLY_BLANK_RESULT_INDEX, 'blank or nil'
+      it_behaves_like 'apply_filter', test_array_data, :selects, :only_nil_values,   ONLY_NIL_RESULT_INDEX,   'nil'
 
-      it_behaves_like 'reject_filters', test_array_data, :select_empty_values, ONLY_EMPTY_RESULT_INDEX, 'selects', 'empty or nil'
-      it_behaves_like 'reject_filters', test_array_data, :select_blank_values, ONLY_BLANK_RESULT_INDEX, 'selects', 'blank or nil'
-      it_behaves_like 'reject_filters', test_array_data, :select_nil_values,   ONLY_NIL_RESULT_INDEX,   'selects', 'nil'
+      it_behaves_like 'apply_filter', test_array_data, :selects, :select_empty_values, ONLY_EMPTY_RESULT_INDEX, 'empty or nil'
+      it_behaves_like 'apply_filter', test_array_data, :selects, :select_blank_values, ONLY_BLANK_RESULT_INDEX, 'blank or nil'
+      it_behaves_like 'apply_filter', test_array_data, :selects, :select_nil_values,   ONLY_NIL_RESULT_INDEX,   'nil'
 
-      it_behaves_like 'reject_values',  test_array_data, :is_empty?,         NON_EMPTY_RESULT_INDEX,  'rejects', 'empty or nil'
-      it_behaves_like 'reject_values',  test_array_data, :is_blank?,         NON_BLANK_RESULT_INDEX,  'rejects', 'blank or nil'
-      it_behaves_like 'reject_values',  test_array_data, :nil?,              NON_NIL_RESULT_INDEX,    'rejects', 'nil'
+      it_behaves_like 'filter_values', test_array_data, :rejects, :is_empty?, NON_EMPTY_RESULT_INDEX,  'empty or nil'
+      it_behaves_like 'filter_values', test_array_data, :rejects, :is_blank?, NON_BLANK_RESULT_INDEX,  'blank or nil'
+      it_behaves_like 'filter_values', test_array_data, :rejects, :nil?,      NON_NIL_RESULT_INDEX,    'nil'
 
-      it_behaves_like 'select_values',  test_array_data, :is_empty?,         ONLY_EMPTY_RESULT_INDEX, 'selects', 'empty or nil'
-      it_behaves_like 'select_values',  test_array_data, :is_blank?,         ONLY_BLANK_RESULT_INDEX, 'selects', 'blank or nil'
-      it_behaves_like 'select_values',  test_array_data, :nil?,              ONLY_NIL_RESULT_INDEX,   'selects', 'nil'
+      it_behaves_like 'filter_values', test_array_data, :selects, :is_empty?, ONLY_EMPTY_RESULT_INDEX, 'empty or nil'
+      it_behaves_like 'filter_values', test_array_data, :selects, :is_blank?, ONLY_BLANK_RESULT_INDEX, 'blank or nil'
+      it_behaves_like 'filter_values', test_array_data, :selects, :nil?,      ONLY_NIL_RESULT_INDEX,   'nil'
+    end
+
+    context 'with start and depth arguments on array filters' do
+      test_array_data_plain_0_nil =
+        [
+          'array values',               # description
+          [1, 'foo', nil, :apple, ' '], # test data
+
+          [1, 'foo',      :apple, ' '], # non empty result
+          [1, 'foo',      :apple     ], # non blank result
+          [1, 'foo',      :apple, ' '], # non nil result
+
+          [          nil,            ], # only empty result
+          [          nil,         ' '], # only blank result
+          [          nil,            ], # only nil result
+        ].freeze
+      test_array_data_plain_1_nil =
+        [
+          'plain array values',         # description
+          [1, 'foo', nil, :apple, ' '], # test data
+
+          [1, 'foo', nil, :apple, ' '], # (1, nil) non empty result
+          [1, 'foo', nil, :apple, ' '], # (1, nil) non blank result
+          [1, 'foo', nil, :apple, ' '], # (1, nil) non nil result
+
+          [1, 'foo', nil, :apple, ' '], # (1, nil) only empty result
+          [1, 'foo', nil, :apple, ' '], # (1, nil) only blank result
+          [1, 'foo', nil, :apple, ' '], # (1, nil) only nil result
+        ].freeze
+      test_array_data_plain_nil_0 =
+        [
+          'plain array values',         # description
+          [1, 'foo', nil, :apple, ' '], # test data
+
+          [1, 'foo',      :apple, ' '], # non empty result
+          [1, 'foo',      :apple     ], # non blank result
+          [1, 'foo',      :apple, ' '], # non nil result
+
+          [          nil,            ], # only empty result
+          [          nil,         ' '], # only blank result
+          [          nil,            ], # only nil result
+        ].freeze
+      test_array_data_sub1_nil_0 =
+        [
+          'array values with sub-array elements',                     # description
+          [1, 'foo',  '', ' ', nil, [:apple, nil, 'banana', ' ', ''], 'bar'],  # test_data
+
+          [1, 'foo',      ' ',      [:apple, nil, 'banana', ' ', ''], 'bar'],  # non empty result
+          [1, 'foo',                [:apple, nil, 'banana', ' ', ''], 'bar'],  # non blank result
+          [1, 'foo',  '', ' ',      [:apple, nil, 'banana', ' ', ''], 'bar'],  # non nil result
+
+          [           '',      nil,                                        ],  # only empty result
+          [           '', ' ', nil,                                        ],  # only blank result
+          [                    nil,                                        ],  # only nil result
+        ].freeze
+      test_array_data_sub1_1_nil =
+        [
+          'array values with sub-hash elements',                             # description
+          [1, 'foo',  nil, { a: 1, b: nil, c: '', d: 'ok', e: ' ' }, 'bar'], # test data
+
+          [1, 'foo',  nil, { a: 1,                d: 'ok', e: ' ' }, 'bar'], # non empty result
+          [1, 'foo',  nil, { a: 1,                d: 'ok'         }, 'bar'], # non blank result
+          [1, 'foo',  nil, { a: 1,         c: '', d: 'ok', e: ' ' }, 'bar'], # non nil result
+
+          [1, 'foo',  nil, {       b: nil, c: '',                 }, 'bar'], # only empty result
+          [1, 'foo',  nil, {       b: nil, c: '',          e: ' ' }, 'bar'], # only blank result
+          [1, 'foo',  nil, {       b: nil,                        }, 'bar'], # only nil result
+        ].freeze
+
+      it_behaves_like 'apply_filters_with_args', test_array_data_plain_0_nil, 0, nil
+      it_behaves_like 'apply_filters_with_args', test_array_data_plain_1_nil, 1, nil
+      it_behaves_like 'apply_filters_with_args', test_array_data_plain_nil_0, nil, 0
+
+      it_behaves_like 'apply_filters_with_args', test_array_data_sub1_nil_0, nil, 0
+      it_behaves_like 'apply_filters_with_args', test_array_data_sub1_1_nil, 1, nil
     end
 
     context 'boolean methods on arrays' do
@@ -206,29 +295,29 @@ RSpec.describe BlankEmptyNilFilters do
           ]
         ].freeze
 
-      it_behaves_like 'reject_filters', test_hash_data, :reject_empty_values, NON_EMPTY_RESULT_INDEX,  'rejects', 'empty or nil'
-      it_behaves_like 'reject_filters', test_hash_data, :reject_blank_values, NON_BLANK_RESULT_INDEX,  'rejects', 'blank or nil'
-      it_behaves_like 'reject_filters', test_hash_data, :reject_nil_values,   NON_NIL_RESULT_INDEX,    'rejects', 'nil'
+      it_behaves_like 'apply_filter', test_hash_data, :rejects, :reject_empty_values, NON_EMPTY_RESULT_INDEX,  'empty or nil'
+      it_behaves_like 'apply_filter', test_hash_data, :rejects, :reject_blank_values, NON_BLANK_RESULT_INDEX,  'blank or nil'
+      it_behaves_like 'apply_filter', test_hash_data, :rejects, :reject_nil_values,   NON_NIL_RESULT_INDEX,    'nil'
 
-      it_behaves_like 'reject_filters', test_hash_data, :only_empty_values,   ONLY_EMPTY_RESULT_INDEX, 'selects', 'empty or nil'
-      it_behaves_like 'reject_filters', test_hash_data, :only_blank_values,   ONLY_BLANK_RESULT_INDEX, 'selects', 'blank or nil'
-      it_behaves_like 'reject_filters', test_hash_data, :only_nil_values,     ONLY_NIL_RESULT_INDEX,   'selects', 'nil'
+      it_behaves_like 'apply_filter', test_hash_data, :selects, :only_empty_values,   ONLY_EMPTY_RESULT_INDEX, 'empty or nil'
+      it_behaves_like 'apply_filter', test_hash_data, :selects, :only_blank_values,   ONLY_BLANK_RESULT_INDEX, 'blank or nil'
+      it_behaves_like 'apply_filter', test_hash_data, :selects, :only_nil_values,     ONLY_NIL_RESULT_INDEX,   'nil'
 
-      it_behaves_like 'reject_values',  test_hash_data, :is_empty?,           NON_EMPTY_RESULT_INDEX,  'rejects', 'empty or nil'
-      it_behaves_like 'reject_values',  test_hash_data, :is_blank?,           NON_BLANK_RESULT_INDEX,  'rejects', 'blank or nil'
-      it_behaves_like 'reject_values',  test_hash_data, :nil?,                NON_NIL_RESULT_INDEX,    'rejects', 'nil'
+      it_behaves_like 'filter_values', test_hash_data, :rejects, :is_empty?, NON_EMPTY_RESULT_INDEX,  'empty or nil'
+      it_behaves_like 'filter_values', test_hash_data, :rejects, :is_blank?, NON_BLANK_RESULT_INDEX,  'blank or nil'
+      it_behaves_like 'filter_values', test_hash_data, :rejects, :nil?,      NON_NIL_RESULT_INDEX,    'nil'
 
-      it_behaves_like 'select_values',  test_hash_data, :is_empty?,           ONLY_EMPTY_RESULT_INDEX, 'selects', 'empty or nil'
-      it_behaves_like 'select_values',  test_hash_data, :is_blank?,           ONLY_BLANK_RESULT_INDEX, 'selects', 'blank or nil'
-      it_behaves_like 'select_values',  test_hash_data, :is_nil?,             ONLY_NIL_RESULT_INDEX,   'selects', 'nil'
+      it_behaves_like 'filter_values', test_hash_data, :selects, :is_empty?, ONLY_EMPTY_RESULT_INDEX, 'empty or nil'
+      it_behaves_like 'filter_values', test_hash_data, :selects, :is_blank?, ONLY_BLANK_RESULT_INDEX, 'blank or nil'
+      it_behaves_like 'filter_values', test_hash_data, :selects, :is_nil?,   ONLY_NIL_RESULT_INDEX,   'nil'
 
-      it_behaves_like 'key_filters',    test_hash_data, :blank_value_keys,    ONLY_BLANK_RESULT_INDEX, 'selects', 'blank or nil'
-      it_behaves_like 'key_filters',    test_hash_data, :empty_value_keys,    ONLY_EMPTY_RESULT_INDEX, 'selects', 'empty or nil'
-      it_behaves_like 'key_filters',    test_hash_data, :nil_value_keys,      ONLY_NIL_RESULT_INDEX,   'selects', 'nil'
+      it_behaves_like 'key_filters', test_hash_data, :selects, :blank_value_keys,     ONLY_BLANK_RESULT_INDEX, 'blank or nil'
+      it_behaves_like 'key_filters', test_hash_data, :selects, :empty_value_keys,     ONLY_EMPTY_RESULT_INDEX, 'empty or nil'
+      it_behaves_like 'key_filters', test_hash_data, :selects, :nil_value_keys,       ONLY_NIL_RESULT_INDEX,   'nil'
 
-      it_behaves_like 'key_filters',    test_hash_data, :non_blank_value_keys, NON_BLANK_RESULT_INDEX, 'rejects', 'blank or nil'
-      it_behaves_like 'key_filters',    test_hash_data, :non_empty_value_keys, NON_EMPTY_RESULT_INDEX, 'rejects', 'empty or nil'
-      it_behaves_like 'key_filters',    test_hash_data, :non_nil_value_keys,   NON_NIL_RESULT_INDEX,   'rejects', 'nil'
+      it_behaves_like 'key_filters', test_hash_data, :rejects, :non_blank_value_keys, NON_BLANK_RESULT_INDEX, 'blank or nil'
+      it_behaves_like 'key_filters', test_hash_data, :rejects, :non_empty_value_keys, NON_EMPTY_RESULT_INDEX, 'empty or nil'
+      it_behaves_like 'key_filters', test_hash_data, :rejects, :non_nil_value_keys,   NON_NIL_RESULT_INDEX,   'nil'
     end
 
     context 'boolean methods on hashes' do
