@@ -38,11 +38,22 @@ RSpec.describe BlankEmptyNilFilters do
   end
 
   shared_examples_for 'select_values' do |test_data, filter, result_index, action, test_kind|
-    describe "#reject_values(:#{filter})" do
+    describe "#select_values(:#{filter})" do
       test_data.each do |data|
         desc, test_datum, test_result = data.values_at(DESC_INDEX, DATA_INDEX, result_index)
         it "#{action} #{test_kind} #{desc}" do
           expect(test_datum.select_values(filter)).to eq test_result
+        end
+      end
+    end
+  end
+
+  shared_examples_for 'key_filters' do |test_data, method, result_index, action, test_kind|
+    describe "#{method}" do
+      test_data.each do |data|
+        desc, test_datum, test_result = data.values_at(DESC_INDEX, DATA_INDEX, result_index)
+        it "#{action} #{test_kind} #{desc}" do
+          expect(test_datum.send(method)).to match_array(test_result.keys)
         end
       end
     end
@@ -65,7 +76,7 @@ RSpec.describe BlankEmptyNilFilters do
   end
 
   describe "ArrayFilters" do
-    context 'reject_* methods' do
+    context 'reject and select methods' do
       test_array_data =
         [
           [
@@ -110,9 +121,17 @@ RSpec.describe BlankEmptyNilFilters do
       it_behaves_like 'reject_filters', test_array_data, :no_blank_values,   NON_BLANK_RESULT_INDEX,  'rejects', 'blank or nil'
       it_behaves_like 'reject_filters', test_array_data, :no_nil_values,     NON_NIL_RESULT_INDEX,    'rejects', 'nil'
 
+      it_behaves_like 'reject_filters', test_array_data, :reject_empty_values, NON_EMPTY_RESULT_INDEX, 'rejects', 'empty or nil'
+      it_behaves_like 'reject_filters', test_array_data, :reject_blank_values, NON_BLANK_RESULT_INDEX, 'rejects', 'blank or nil'
+      it_behaves_like 'reject_filters', test_array_data, :reject_nil_values,   NON_NIL_RESULT_INDEX,   'rejects', 'nil'
+
       it_behaves_like 'reject_filters', test_array_data, :only_empty_values, ONLY_EMPTY_RESULT_INDEX, 'selects', 'empty or nil'
       it_behaves_like 'reject_filters', test_array_data, :only_blank_values, ONLY_BLANK_RESULT_INDEX, 'selects', 'blank or nil'
       it_behaves_like 'reject_filters', test_array_data, :only_nil_values,   ONLY_NIL_RESULT_INDEX,   'selects', 'nil'
+
+      it_behaves_like 'reject_filters', test_array_data, :select_empty_values, ONLY_EMPTY_RESULT_INDEX, 'selects', 'empty or nil'
+      it_behaves_like 'reject_filters', test_array_data, :select_blank_values, ONLY_BLANK_RESULT_INDEX, 'selects', 'blank or nil'
+      it_behaves_like 'reject_filters', test_array_data, :select_nil_values,   ONLY_NIL_RESULT_INDEX,   'selects', 'nil'
 
       it_behaves_like 'reject_values',  test_array_data, :is_empty?,         NON_EMPTY_RESULT_INDEX,  'rejects', 'empty or nil'
       it_behaves_like 'reject_values',  test_array_data, :is_blank?,         NON_BLANK_RESULT_INDEX,  'rejects', 'blank or nil'
@@ -146,7 +165,7 @@ RSpec.describe BlankEmptyNilFilters do
   end
 
   describe "HashFilters" do
-    context 'reject_* methods' do
+    context 'reject and select methods' do
       test_hash_data =
         [
           [
@@ -202,6 +221,14 @@ RSpec.describe BlankEmptyNilFilters do
       it_behaves_like 'select_values',  test_hash_data, :is_empty?,           ONLY_EMPTY_RESULT_INDEX, 'selects', 'empty or nil'
       it_behaves_like 'select_values',  test_hash_data, :is_blank?,           ONLY_BLANK_RESULT_INDEX, 'selects', 'blank or nil'
       it_behaves_like 'select_values',  test_hash_data, :is_nil?,             ONLY_NIL_RESULT_INDEX,   'selects', 'nil'
+
+      it_behaves_like 'key_filters',    test_hash_data, :blank_value_keys,    ONLY_BLANK_RESULT_INDEX, 'selects', 'blank or nil'
+      it_behaves_like 'key_filters',    test_hash_data, :empty_value_keys,    ONLY_EMPTY_RESULT_INDEX, 'selects', 'empty or nil'
+      it_behaves_like 'key_filters',    test_hash_data, :nil_value_keys,      ONLY_NIL_RESULT_INDEX,   'selects', 'nil'
+
+      it_behaves_like 'key_filters',    test_hash_data, :non_blank_value_keys, NON_BLANK_RESULT_INDEX, 'rejects', 'blank or nil'
+      it_behaves_like 'key_filters',    test_hash_data, :non_empty_value_keys, NON_EMPTY_RESULT_INDEX, 'rejects', 'empty or nil'
+      it_behaves_like 'key_filters',    test_hash_data, :non_nil_value_keys,   NON_NIL_RESULT_INDEX,   'rejects', 'nil'
     end
 
     context 'boolean methods on hashes' do

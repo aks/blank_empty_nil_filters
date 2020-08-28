@@ -3,126 +3,174 @@
 # See README.me for the descriptions.
 
 module BlankEmptyNilFilters
+  # These filter methods are used on both the Array and Hash extensions
+  module FilterMethods
+    def maybe_recurse(val, scanner, condition, start, depth, level)
+      if level >= start && (depth.nil? || level < depth)
+        if val.respond_to?(scanner)
+          val.send(scanner, condition, start, depth, level+1) # recurse
+        else
+          val
+        end
+      else
+        val
+      end
+    end
+
+    def maybe_apply(val, condition, start, depth, level)
+      val.send(condition) if level >= start && (depth.nil? || level < depth)
+    end
+  end
+
   module ArrayExtensions
-    def no_empty_values
-      reject_values(:is_empty?)
+    def no_empty_values(start = 0, depth = nil, level = 0)
+      reject_values(:is_empty?, start, depth, level)
     end
     alias reject_empty_values no_empty_values
 
-    def no_blank_values
-      reject_values(:is_blank?)
+    def no_blank_values(start = 0, depth = nil, level = 0)
+      reject_values(:is_blank?, start, depth, level)
     end
     alias reject_blank_values no_blank_values
 
-    def no_nil_values
-      reject_values(:nil?)
+    def no_nil_values(start = 0, depth = nil, level = 0)
+      reject_values(:nil?, start, depth, level)
     end
     alias reject_nil_values no_nil_values
 
-    def only_empty_values
-      select_values(:is_empty?)
-    end
-
-    def only_blank_values
-      select_values(:is_blank?)
-    end
-
-    def only_nil_values
-      select_values(:is_nil?)
-    end
-
-    def is_empty?
-      length.zero? || reject_empty_values.length.zero?
-    end
-
-    def is_blank?
-      is_empty? || reject_blank_values.length.zero?
-    end
-
-    def reject_values(filter)
-      map { |val| val.respond_to?(:reject_values) ? val.reject_values(filter) : val }
-        .reject { |val| val.send(filter) }
-    end
-    alias no_values reject_values
-
-    def select_values(filter)
-      map { |val| val.respond_to?(:select_values) ? val.select_values(filter) : val }
-        .select { |val| val.send(filter) }
-    end
-    alias only_values select_values
-  end
-
-  module HashExtensions
-    def no_empty_values
-      reject_values(:is_empty?)
-    end
-    alias reject_empty_values no_empty_values
-
-    def only_empty_values
-      select_values(:is_empty?)
+    def only_empty_values(start = 0, depth = nil, level = 0)
+      select_values(:is_empty?, start, depth, level)
     end
     alias select_empty_values only_empty_values
 
-    def no_blank_values
-      reject_values(:is_blank?)
-    end
-    alias reject_blank_values no_blank_values
-
-    def only_blank_values
-      select_values(:is_blank?)
+    def only_blank_values(start = 0, depth = nil, level = 0)
+      select_values(:is_blank?, start, depth, level)
     end
     alias select_blank_values only_blank_values
 
-    def no_nil_values
-      reject_values(:nil?)
-    end
-    alias reject_nil_values no_nil_values
-
-    def only_nil_values
-      select_values(:nil?)
+    def only_nil_values(start = 0, depth = nil, level = 0)
+      select_values(:is_nil?, start, depth, level)
     end
     alias select_nil_values only_nil_values
 
-    def empty_value_keys
-      only_empty_values.keys
+    def is_empty?(start = 0, depth = nil, level = 0)
+      length.zero? || no_empty_values(start, depth, level).length.zero?
     end
 
-    def blank_value_keys
-      only_blank_values.key
+    def is_blank?(start = 0, depth = nil, level = 0)
+      is_empty? || no_blank_values(start, depth, level).length.zero?
     end
 
-    def nil_value_keys
-      only_nil_values.keys
+    # @param [Symbol] condition the name of the filter method (eg: :is_empty?)
+    # @param [Integer] start the starting level at which filtering occurs; default: 0
+    # @param [Integer|nil] depth the maximum level at which filtering occurs; defaults to nil for no limit
+    # @param [Integer] level the current level; defaults to 0
+    # @return [Array] the filtered array after having recursively applied +condition+ to each
+    #                 element and removing those for which the condition is true
+    def reject_values(condition, start = 0, depth = nil, level = 0)
+      filter_values(:reject_values, :reject, condition, start, depth, level)
+    end
+    alias no_values reject_values
+
+    # @param [Symbol] condition the name of the filter method (eg: :is_empty?)
+    # @param [Integer] start the starting level at which filtering occurs; default: 0
+    # @param [Integer|nil] depth the maximum level at which filtering occurs; nil = no limit
+    # @param [Integer] level the current level; defaults to 0
+    # @return [Array] the filtered array after having recursively applied +condition+ to each element
+    #                 element and selecting out those for which the condition is true
+    def select_values(condition, start = 0, depth = nil, level = 0)
+      filter_values(:select_values, :select, condition, start, depth, level)
+    end
+    alias only_values select_values
+
+    private
+
+    include FilterMethods
+
+    def filter_values(scanner, selector, condition, start, depth, level)
+      map { |val| maybe_recurse(val, scanner, condition, start, depth, level) }
+        .send(selector) { |val| maybe_apply(val, condition, start, depth, level) }
+    end
+  end
+
+  module HashExtensions
+    def no_empty_values(start = 0, depth = nil, level = 0)
+      reject_values(:is_empty?, start, depth, level)
+    end
+    alias reject_empty_values no_empty_values
+
+    def only_empty_values(start = 0, depth = nil, level = 0)
+      select_values(:is_empty?, start, depth, level)
+    end
+    alias select_empty_values only_empty_values
+
+    def no_blank_values(start = 0, depth = nil, level = 0)
+      reject_values(:is_blank?, start, depth, level)
+    end
+    alias reject_blank_values no_blank_values
+
+    def only_blank_values(start = 0, depth = nil, level = 0)
+      select_values(:is_blank?, start, depth, level)
+    end
+    alias select_blank_values only_blank_values
+
+    def no_nil_values(start = 0, depth = nil, level = 0)
+      reject_values(:nil?, start, depth, level)
+    end
+    alias reject_nil_values no_nil_values
+
+    def only_nil_values(start = 0, depth = nil, level = 0)
+      select_values(:nil?, start, depth, level)
+    end
+    alias select_nil_values only_nil_values
+
+    def empty_value_keys(start = 0, depth = nil, level = 0)
+      only_empty_values(start, depth, level).keys
     end
 
-    def non_empty_value_keys
-      no_empty_values.key
+    def blank_value_keys(start = 0, depth = nil, level = 0)
+      only_blank_values(start, depth, level).keys
     end
 
-    def non_blank_value_keys
-      no_blank_values.keys
+    def nil_value_keys(start = 0, depth = nil, level = 0)
+      only_nil_values(start, depth, level).keys
     end
 
-    def non_nil_value_keys
-      no_nil_values.keys
+    def non_empty_value_keys(start = 0, depth = nil, level = 0)
+      no_empty_values(start, depth, level).keys
     end
 
-    def is_empty?
-      length.zero? || no_empty_values.length.zero?
+    def non_blank_value_keys(start = 0, depth = nil, level = 0)
+      no_blank_values(start, depth, level).keys
     end
 
-    def is_blank?
-      length.zero? || reject_blank_values.length.zero?
+    def non_nil_value_keys(start = 0, depth = nil, level = 0)
+      no_nil_values(start, depth, level).keys
     end
 
-    def reject_values(filter)
-      dup.transform_values { |val| val.respond_to?(:reject_values) ? val.reject_values(filter) : val }
-         .reject { |_key, val| val.send(filter) }
+    def is_empty?(start = 0, depth = nil, level = 0)
+      length.zero? || no_empty_values(start, depth, level).length.zero?
     end
 
-    def select_values(filter)
-      dup.transform_values { |val| val.respond_to?(:select_values) ? val.select_values(filter) : val }
-         .select { |_key, val| val.send(filter) }
+    def is_blank?(start = 0, depth = nil, level = 0)
+      length.zero? || reject_blank_values(start, depth, level).length.zero?
+    end
+
+    def reject_values(condition, start = 0, depth = nil, level = 0)
+      filter_hash_values(:reject_values, :reject, condition, start, depth, level)
+    end
+
+    def select_values(condition, start = 0, depth = nil, level = 0)
+      filter_hash_values(:select_values, :select, condition, start, depth, level)
+    end
+
+    private
+
+    include FilterMethods
+
+    def filter_hash_values(scanner, selector, condition, start, depth, level)
+      dup.transform_values { |val| maybe_recurse(val, scanner, condition, start, depth, level) }
+        .send(selector) { |_key, val| maybe_apply(val, condition, start, depth, level) }
     end
   end
 
