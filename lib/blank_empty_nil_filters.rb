@@ -208,10 +208,12 @@ module BlankEmptyNilFilters
     def no_blank_value
       is_blank? ? nil : self
     end
+    alias non_blank no_blank_value
 
     def no_empty_value
       is_empty? ? nil : self
     end
+    alias non_empty no_empty_value
 
     def is_empty?
       if nil?
