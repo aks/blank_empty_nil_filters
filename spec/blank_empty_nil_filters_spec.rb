@@ -411,114 +411,227 @@ RSpec.describe BlankEmptyNilFilters do
       end
     end
 
-    let(:obj_with_length)    { SomeObjectWithLength.new(length: 5) }
-    let(:obj_without_length) { SomeObjectWithNoLength.new }
+    class BlankObject < String
+      def initialize
+        replace(' ')
+      end
+    end
+
+    class NonBlankObject < String
+      def initialize
+        replace('xxx')
+      end
+    end
+
+    obj_w_length   = SomeObjectWithLength.new(length: 5)
+    obj_w_zero_len = SomeObjectWithLength.new(length: 0)
+    obj_wo_length  = SomeObjectWithNoLength.new
+    blank_obj      = BlankObject.new
+    non_blank_obj  = NonBlankObject.new
+    empty_obj      = obj_w_zero_len
+    non_empty_obj  = obj_w_length
+
+    empty_ary          = []
+    non_empty_ary      = [4]
+    ary_w_some_blanks  = [:a, nil, ' ', [nil], :c]
+    ary_w_all_blanks   = ['', nil, '  ', [' '], '    ']
+
+    empty_hash         = {}
+    non_empty_hash     = { foo: :bar }
+    hash_w_values      = { a: 1, b: 2, c: { d: 3 } }
+    hash_w_some_blanks = { a: 1, b: ' ', c: { d: ' ' } }
+    hash_w_all_blanks  = { a: '  ', b: '  ', c: { d: '  ' } }
+
+    nil_obj        = nil
+    non_nil_obj    = '42'
+
+    shared_examples_for 'object-queries' do |method, object, result|
+      context "testing #{method} on #{object}" do
+        subject { object.send(method) }
+        it { is_expected.to eq result }
+      end
+    end
+
+    shared_examples_for 'object-filters' do |method, object, result|
+      context "testing #{method} on #{object}" do
+        subject { object.send(method) }
+        it { is_expected.to eq (result ? object : nil) }
+      end
+    end
+
+    describe '#non_blank' do
+      it_behaves_like 'object-filters', :non_blank, blank_obj, false
+      it_behaves_like 'object-filters', :non_blank, empty_obj, false
+      it_behaves_like 'object-filters', :non_blank, nil_obj,   false
+
+      it_behaves_like 'object-filters', :non_blank, non_blank_obj, true
+      it_behaves_like 'object-filters', :non_blank, non_empty_obj, true
+      it_behaves_like 'object-filters', :non_blank, non_nil_obj,   true
+
+      it_behaves_like 'object-filters', :non_blank, obj_w_length,   true
+      it_behaves_like 'object-filters', :non_blank, obj_wo_length,  true
+      it_behaves_like 'object-filters', :non_blank, obj_w_zero_len, false
+
+      it_behaves_like 'object-filters', :non_blank, empty_hash,         false
+      it_behaves_like 'object-filters', :non_blank, non_empty_hash,     true
+      it_behaves_like 'object-filters', :non_blank, hash_w_values,      true
+      it_behaves_like 'object-filters', :non_blank, hash_w_some_blanks, true
+      it_behaves_like 'object-filters', :non_blank, hash_w_all_blanks,  false
+
+      it_behaves_like 'object-filters', :non_blank, empty_ary,         false
+      it_behaves_like 'object-filters', :non_blank, non_empty_ary,     true
+      it_behaves_like 'object-filters', :non_blank, ary_w_some_blanks, true
+      it_behaves_like 'object-filters', :non_blank, ary_w_all_blanks,  false
+    end
+
+    describe '#non_empty' do
+      it_behaves_like 'object-filters', :non_empty, blank_obj, true
+      it_behaves_like 'object-filters', :non_empty, empty_obj, false
+      it_behaves_like 'object-filters', :non_empty, nil_obj,   false
+
+      it_behaves_like 'object-filters', :non_empty, non_blank_obj, true
+      it_behaves_like 'object-filters', :non_empty, non_empty_obj, true
+      it_behaves_like 'object-filters', :non_empty, non_nil_obj,   true
+
+      it_behaves_like 'object-filters', :non_empty, obj_w_length,   true
+      it_behaves_like 'object-filters', :non_empty, obj_wo_length,  true
+      it_behaves_like 'object-filters', :non_empty, obj_w_zero_len, false
+
+      it_behaves_like 'object-filters', :non_empty, empty_hash,         false
+      it_behaves_like 'object-filters', :non_empty, non_empty_hash,     true
+      it_behaves_like 'object-filters', :non_empty, hash_w_values,      true
+      it_behaves_like 'object-filters', :non_empty, hash_w_some_blanks, true
+      it_behaves_like 'object-filters', :non_empty, hash_w_all_blanks,  true
+
+      it_behaves_like 'object-filters', :non_empty, empty_ary,         false
+      it_behaves_like 'object-filters', :non_empty, non_empty_ary,     true
+      it_behaves_like 'object-filters', :non_empty, ary_w_some_blanks, true
+      it_behaves_like 'object-filters', :non_empty, ary_w_all_blanks,  true
+    end
 
     describe "#is_empty?" do
-      subject { test_obj.is_empty? }
+      it_behaves_like 'object-queries', :is_empty?, blank_obj, false
+      it_behaves_like 'object-queries', :is_empty?, empty_obj, true
+      it_behaves_like 'object-queries', :is_empty?, nil_obj,   true
 
-      context 'when it responds to .length' do
-        context 'when the length is zero' do
-          let(:test_obj) { SomeObjectWithLength.new(length: 0) }
-          it { is_expected.to be true }
-        end
+      it_behaves_like 'object-queries', :is_empty?, non_blank_obj, false
+      it_behaves_like 'object-queries', :is_empty?, non_empty_obj, false
+      it_behaves_like 'object-queries', :is_empty?, non_nil_obj,   false
 
-        context 'when the length is non-zero' do
-          let(:test_obj) { SomeObjectWithLength.new(length: 10) }
-          it { is_expected.to be false }
-        end
-      end
+      it_behaves_like 'object-queries', :is_empty?, obj_w_length,   false
+      it_behaves_like 'object-queries', :is_empty?, obj_wo_length,  false
+      it_behaves_like 'object-queries', :is_empty?, obj_w_zero_len, true
 
-      context 'when it does not respond to length' do
-        let(:test_obj) { SomeObjectWithNoLength.new }
-        it { is_expected.to be false }
-      end
+      it_behaves_like 'object-queries', :is_empty?, empty_hash,         true
+      it_behaves_like 'object-queries', :is_empty?, non_empty_hash,     false
+      it_behaves_like 'object-queries', :is_empty?, hash_w_values,      false
+      it_behaves_like 'object-queries', :is_empty?, hash_w_some_blanks, false
+      it_behaves_like 'object-queries', :is_empty?, hash_w_all_blanks,  false
+
+      it_behaves_like 'object-queries', :is_empty?, empty_ary,         true
+      it_behaves_like 'object-queries', :is_empty?, non_empty_ary,     false
+      it_behaves_like 'object-queries', :is_empty?, ary_w_some_blanks, false
+      it_behaves_like 'object-queries', :is_empty?, ary_w_all_blanks,  false
     end
 
     describe "#is_blank?" do
-      subject { test_obj.is_blank? }
+      it_behaves_like 'object-queries', :is_blank?, blank_obj, true
+      it_behaves_like 'object-queries', :is_blank?, empty_obj, true
+      it_behaves_like 'object-queries', :is_blank?, nil_obj,   true
 
-      context 'when it responds to .length' do
-        context 'when the length is zero' do
-          let(:test_obj) { SomeObjectWithLength.new(length: 0) }
-          it { is_expected.to be true }
-        end
+      it_behaves_like 'object-queries', :is_blank?, non_blank_obj, false
+      it_behaves_like 'object-queries', :is_blank?, non_empty_obj, false
+      it_behaves_like 'object-queries', :is_blank?, non_nil_obj,   false
 
-        context 'when the length is non-zero' do
-          let(:test_obj) { SomeObjectWithLength.new(length: 10) }
-          it { is_expected.to be false }
-        end
-      end
+      it_behaves_like 'object-queries', :is_blank?, obj_w_length,   false
+      it_behaves_like 'object-queries', :is_blank?, obj_wo_length,  false
+      it_behaves_like 'object-queries', :is_blank?, obj_w_zero_len, true
 
-      context 'when it does not respond to length' do
-        let(:test_obj) { SomeObjectWithNoLength.new }
-        it { is_expected.to be false }
-      end
+      it_behaves_like 'object-queries', :is_blank?, empty_hash,     true
+      it_behaves_like 'object-queries', :is_blank?, non_empty_hash, false
+      it_behaves_like 'object-queries', :is_blank?, hash_w_values,      false
+      it_behaves_like 'object-queries', :is_blank?, hash_w_some_blanks, false
+      it_behaves_like 'object-queries', :is_blank?, hash_w_all_blanks,  true
+
+      it_behaves_like 'object-queries', :is_blank?, empty_ary,         true
+      it_behaves_like 'object-queries', :is_blank?, non_empty_ary,     false
+      it_behaves_like 'object-queries', :is_blank?, ary_w_some_blanks, false
+      it_behaves_like 'object-queries', :is_blank?, ary_w_all_blanks,  true
     end
 
     describe "#non_blank?" do
-      subject { test_obj.non_blank? }
+      it_behaves_like 'object-queries', :non_blank?, blank_obj, false
+      it_behaves_like 'object-queries', :non_blank?, empty_obj, false
+      it_behaves_like 'object-queries', :non_blank?, nil_obj,   false
 
-      context 'with a string' do
-        context "with a non-blank string" do
-          let(:test_obj) { +'foobar' }
-          it { is_expected.to be true }
-        end
+      it_behaves_like 'object-queries', :non_blank?, non_blank_obj, true
+      it_behaves_like 'object-queries', :non_blank?, non_empty_obj, true
+      it_behaves_like 'object-queries', :non_blank?, non_nil_obj,   true
 
-        context 'with a blank string' do
-          let(:test_obj) { +'' }
-          it { is_expected.to be false }
-        end
-      end
+      it_behaves_like 'object-queries', :non_blank?, obj_w_length,   true
+      it_behaves_like 'object-queries', :non_blank?, obj_wo_length,  true
+      it_behaves_like 'object-queries', :non_blank?, obj_w_zero_len, false
 
-      context "with a hash" do
-        context 'with a hash with no blank values' do
-          let(:test_obj) { { a: 1, b: 2, c: { d: 3 } } }
-          it { is_expected.to be true }
-        end
+      it_behaves_like 'object-queries', :non_blank?, empty_hash,         false
+      it_behaves_like 'object-queries', :non_blank?, non_empty_hash,     true
+      it_behaves_like 'object-queries', :non_blank?, hash_w_values,      true
+      it_behaves_like 'object-queries', :non_blank?, hash_w_some_blanks, true
+      it_behaves_like 'object-queries', :non_blank?, hash_w_all_blanks,  false
 
-        context 'with a hash with some blank values' do
-          let(:test_obj) { { a: 1, b: ' ', c: { d: ' ' } } }
-          it { is_expected.to be true }
-        end
-
-        context 'with a hash with all blank values' do
-          let(:test_obj) { { a: '  ', b: '  ', c: { d: '  ' } } }
-          it { is_expected.to be false }
-        end
-      end
-
-      context 'with an array' do
-        context 'with an array with no blank values' do
-          let(:test_obj) { [:a, 2, 'c'] }
-          it { is_expected.to be true }
-        end
-
-        context 'with an array with some blank values' do
-          let(:test_obj) { [:a, 2, [:c, ' ', nil]] }
-          it { is_expected.to be true }
-        end
-
-        context 'with an array with all blank values' do
-          let(:test_obj) { [nil, ' ', [' ', nil]] }
-          it { is_expected.to be false }
-        end
-      end
+      it_behaves_like 'object-queries', :non_blank?, empty_ary,         false
+      it_behaves_like 'object-queries', :non_blank?, non_empty_ary,     true
+      it_behaves_like 'object-queries', :non_blank?, ary_w_some_blanks, true
+      it_behaves_like 'object-queries', :non_blank?, ary_w_all_blanks,  false
     end
 
     describe "#non_nil?" do
-      subject { test_obj.non_nil? }
+      it_behaves_like 'object-queries', :non_nil?, blank_obj, true
+      it_behaves_like 'object-queries', :non_nil?, empty_obj, true
+      it_behaves_like 'object-queries', :non_nil?, nil_obj,   false
 
-      context "with a nil" do
-        let(:test_obj) { nil }
+      it_behaves_like 'object-queries', :non_nil?, non_blank_obj, true
+      it_behaves_like 'object-queries', :non_nil?, non_empty_obj, true
+      it_behaves_like 'object-queries', :non_nil?, non_nil_obj,   true
 
-        it { is_expected.to be false }
-      end
+      it_behaves_like 'object-queries', :non_nil?, obj_w_length,   true
+      it_behaves_like 'object-queries', :non_nil?, obj_wo_length,  true
+      it_behaves_like 'object-queries', :non_nil?, obj_w_zero_len, true
 
-      context "with a non-nil" do
-        let(:test_obj) { 'foobar' }
-        it { is_expected.to be true }
-      end
+      it_behaves_like 'object-queries', :non_nil?, empty_hash,         true
+      it_behaves_like 'object-queries', :non_nil?, non_empty_hash,     true
+      it_behaves_like 'object-queries', :non_nil?, hash_w_values,      true
+      it_behaves_like 'object-queries', :non_nil?, hash_w_some_blanks, true
+      it_behaves_like 'object-queries', :non_nil?, hash_w_all_blanks,  true
+
+      it_behaves_like 'object-queries', :non_nil?, empty_ary,         true
+      it_behaves_like 'object-queries', :non_nil?, non_empty_ary,     true
+      it_behaves_like 'object-queries', :non_nil?, ary_w_some_blanks, true
+      it_behaves_like 'object-queries', :non_nil?, ary_w_all_blanks,  true
+    end
+
+    describe '#is_nil?' do
+      it_behaves_like 'object-queries', :is_nil?, blank_obj, false
+      it_behaves_like 'object-queries', :is_nil?, empty_obj, false
+      it_behaves_like 'object-queries', :is_nil?, nil_obj,   true
+
+      it_behaves_like 'object-queries', :is_nil?, non_blank_obj, false
+      it_behaves_like 'object-queries', :is_nil?, non_empty_obj, false
+      it_behaves_like 'object-queries', :is_nil?, non_nil_obj,   false
+
+      it_behaves_like 'object-queries', :is_nil?, obj_w_length,   false
+      it_behaves_like 'object-queries', :is_nil?, obj_wo_length,  false
+      it_behaves_like 'object-queries', :is_nil?, obj_w_zero_len, false
+
+      it_behaves_like 'object-queries', :is_nil?, empty_hash,         false
+      it_behaves_like 'object-queries', :is_nil?, non_empty_hash,     false
+      it_behaves_like 'object-queries', :is_nil?, hash_w_values,      false
+      it_behaves_like 'object-queries', :is_nil?, hash_w_some_blanks, false
+      it_behaves_like 'object-queries', :is_nil?, hash_w_all_blanks,  false
+
+      it_behaves_like 'object-queries', :is_nil?, empty_ary,         false
+      it_behaves_like 'object-queries', :is_nil?, non_empty_ary,     false
+      it_behaves_like 'object-queries', :is_nil?, ary_w_some_blanks, false
+      it_behaves_like 'object-queries', :is_nil?, ary_w_all_blanks,  false
     end
   end
 end
