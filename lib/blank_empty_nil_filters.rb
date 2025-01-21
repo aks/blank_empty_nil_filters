@@ -37,6 +37,7 @@ module BlankEmptyNilFilters
     end
     alias reject_blank_values no_blank_values
 
+    # more capable than just ARRAY.compact
     def no_nil_values(start = 0, depth = nil, level = 0)
       reject_values(:nil?, start, depth, level)
     end
@@ -119,6 +120,7 @@ module BlankEmptyNilFilters
     end
     alias select_blank_values only_blank_values
 
+    # more capable than just HASH.compact
     def no_nil_values(start = 0, depth = nil, level = 0)
       reject_values(:nil?, start, depth, level)
     end
@@ -205,15 +207,15 @@ module BlankEmptyNilFilters
   end
 
   module ObjectExtensions
-    def no_blank_value
+    def non_blank
       is_blank? ? nil : self
     end
-    alias non_blank no_blank_value
+    alias no_blank_value non_blank
 
-    def no_empty_value
+    def non_empty
       is_empty? ? nil : self
     end
-    alias non_empty no_empty_value
+    alias no_empty_value non_empty
 
     def is_empty?
       if nil?

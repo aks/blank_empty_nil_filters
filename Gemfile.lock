@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    blank_empty_nil_filters (0.2.0)
+    blank_empty_nil_filters (1.0.0)
 
 GEM
   remote: https://rubygems.org/
