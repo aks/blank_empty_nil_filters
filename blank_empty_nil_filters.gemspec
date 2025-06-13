@@ -10,6 +10,7 @@ Gem::Specification.new do |s|
   s.email         = ['aks@stebbens.org']
   s.homepage      = 'https://github.com/aks/blank_empty_nil_filters'
   s.licenses      = ['MIT']
+  s.required_ruby_version = Gem::Requirement.new(">= 3.3")
   s.summary       = 'Extensions for filtering empty, blank, and nil values from Hashes and Arrays',
   s.description   = <<~TEXT
                     Extentions for convenient filtering of blank, empty, and nil values from

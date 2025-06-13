@@ -16,12 +16,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Ruby 3.1.4
+    - name: Set up Ruby 3.3.8
     # To automatically get bug fixes and new Ruby versions for ruby/setup-ruby,
     # change this to (see https://github.com/ruby/setup-ruby#versioning):
       uses: ruby/setup-ruby@v1
       with:
-        ruby-version: 3.1.4
+        ruby-version: 3.3.8
 
     - name: Publish to RubyGems
       run: |
